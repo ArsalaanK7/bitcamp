@@ -1,0 +1,19 @@
+# Core Python packages
+numpy
+streamlit
+gym
+langchain
+openai
+transformers
+torch
+
+# Optional if using DeepSeek R1 or other models via Hugging Face
+accelerate
+huggingface_hub
+sentence-transformers
+
+# Useful for local storage/logging
+pandas
+
+# If using LangChain agents with OpenAI API
+tiktoken
