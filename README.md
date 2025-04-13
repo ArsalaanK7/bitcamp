@@ -14,9 +14,8 @@ NeuraCoach is an intelligent, agent-based health assistant that leverages Reinfo
 
 - **Frontend**: Streamlit
 - **AI/ML**: 
-  - OpenAI Gym for RL environment
-  - PyTorch for neural networks
-  - LangChain for agent orchestration
+  - Gemini for plan personalization
+  - Langchain to integrate LLM
 - **Data Storage**: Local storage with pandas
 - **Dependencies**: See requirements.txt
 
