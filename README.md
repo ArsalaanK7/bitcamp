@@ -20,25 +20,6 @@ NeuraCoach is an intelligent, agent-based health assistant that leverages Reinfo
 - **Data Storage**: Local storage with pandas
 - **Dependencies**: See requirements.txt
 
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/neuracoach.git
-cd neuracoach
-```
-
-2. Create a virtual environment:
-```bash
-python -m venv env
-source env/bin/activate  # On Windows: env\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
 ## Usage
 
 1. Start the application:
@@ -54,33 +35,6 @@ streamlit run app.py
    - Tracking your activities
    - Viewing your progress
 
-## Project Structure
-
-```
-neuracoach/
-├── agents/
-│   ├── base_agent.py
-│   ├── planner_agent.py
-│   ├── recommendation_agent.py
-│   ├── reflection_agent.py
-│   └── checkin_agent.py
-├── models/
-│   └── rl_engine.py
-├── app.py
-├── requirements.txt
-└── README.md
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- OpenAI Gym for the RL environment framework
-- Streamlit for the amazing web interface
-- The open-source community for inspiration and tools
