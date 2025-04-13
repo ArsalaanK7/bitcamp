@@ -6,6 +6,7 @@ langchain
 openai
 transformers
 torch
+langchain_google_genai
 
 # Optional if using DeepSeek R1 or other models via Hugging Face
 accelerate
