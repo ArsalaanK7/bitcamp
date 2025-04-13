@@ -19,7 +19,11 @@ if 'user_state' not in st.session_state:
         'completed_activities': {},  # Dictionary to track completed activities
         'daily_goal': "",  # Store the user's daily goal
         'suggested_task': None,  # Store the current suggested task
-        'last_completed_task': None  # Store the last completed task
+        'last_completed_task': None,  # Store the last completed task
+        'task_added': False,  # Flag to track if a task was just added
+        'task_declined': False,  # Flag to track if a task was just declined
+        'editing_activity': None,  # Store the activity being edited
+        'show_mood_input': False  # Flag to show mood input popup
     }
 
 # Initialize agents
@@ -80,8 +84,8 @@ daily_goal = st.text_input("Enter your goal for today", value=st.session_state.u
 if daily_goal != st.session_state.user_state['daily_goal']:
     st.session_state.user_state['daily_goal'] = daily_goal
     
-    # If we have a goal and no plan yet, generate a new plan
-    if daily_goal and not st.session_state.user_state['current_plan']:
+    # If we have a goal, generate a new plan
+    if daily_goal:
         # Get personalized recommendations based on the goal
         recommendations = planner_agent.generate_plan([daily_goal])
         
@@ -92,7 +96,13 @@ if daily_goal != st.session_state.user_state['daily_goal']:
             rec: False for rec in recommendations.split('\n') if rec.strip()
         }
         
-        st.success("I've created a personalized plan based on your goal!")
+        # Clear any existing suggested task
+        st.session_state.user_state['suggested_task'] = None
+        st.session_state.user_state['task_added'] = False
+        st.session_state.user_state['task_declined'] = False
+        
+        st.success("I've created a new personalized plan based on your updated goal!")
+        st.rerun()
 
 # Display the personalized plan
 if st.session_state.user_state['current_plan']:
@@ -101,6 +111,21 @@ if st.session_state.user_state['current_plan']:
     # Show the user's goal if available
     if st.session_state.user_state['daily_goal']:
         st.subheader(f"Goal: {st.session_state.user_state['daily_goal']}")
+    
+    # Add manual task input
+    with st.expander("➕ Add Task", expanded=False):
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            new_task = st.text_input("", placeholder="Enter task", key="new_task_input", label_visibility="collapsed")
+        with col2:
+            if st.button("Add", use_container_width=True):
+                if new_task.strip():
+                    # Add the new task to the plan
+                    new_plan = st.session_state.user_state['current_plan'] + "\n" + new_task
+                    st.session_state.user_state['current_plan'] = new_plan
+                    st.session_state.user_state['completed_activities'][new_task] = False
+                    st.success("Task added to your plan!")
+                    st.rerun()
     
     # Create a checklist for the plan items
     plan_items = st.session_state.user_state['current_plan'].split('\n')
@@ -119,16 +144,8 @@ if st.session_state.user_state['current_plan']:
                     # Store the completed task
                     st.session_state.user_state['last_completed_task'] = rec
                     
-                    # Log the activity with current mood and energy
-                    st.session_state.user_state['activity_history'].append({
-                        'timestamp': datetime.now(),
-                        'activity': rec,
-                        'mood': mood,
-                        'energy': energy_level
-                    })
-                    
-                    # Update RL engine
-                    rl_engine.update(rec, mood)
+                    # Set flag to show mood input
+                    st.session_state.user_state['show_mood_input'] = True
                     
                     # Generate a complementary task
                     current_tasks = [task for task in plan_items if task.strip()]
@@ -138,9 +155,44 @@ if st.session_state.user_state['current_plan']:
                     
                     # Show success message
                     st.success(f"Great job completing: {rec}!")
+            
+            # Show mood input popup if this is the last completed task
+            if (st.session_state.user_state['show_mood_input'] and 
+                rec == st.session_state.user_state['last_completed_task']):
+                with st.expander("Rate your feelings", expanded=True):
+                    col1, col2, col3 = st.columns([1, 1, 1])
+                    with col1:
+                        st.markdown("**Mood**")
+                        post_mood = st.slider("", 1, 10, 5, key=f"post_mood_{rec}", label_visibility="collapsed")
+                    with col2:
+                        st.markdown("**Energy**")
+                        post_energy = st.slider("", 1, 10, 5, key=f"post_energy_{rec}", label_visibility="collapsed")
+                    with col3:
+                        st.markdown("&nbsp;")  # Empty space for alignment
+                        if st.button("Save", key=f"save_mood_{rec}", use_container_width=True):
+                            # Log the activity with post-task mood and energy
+                            st.session_state.user_state['activity_history'].append({
+                                'timestamp': datetime.now(),
+                                'activity': rec,
+                                'mood': post_mood,
+                                'energy': post_energy
+                            })
+                            
+                            # Update RL engine
+                            rl_engine.update(rec, post_mood)
+                            
+                            # Remove the completed task from the plan
+                            current_plan = st.session_state.user_state['current_plan'].split('\n')
+                            current_plan = [task for task in current_plan if task.strip() != rec]
+                            st.session_state.user_state['current_plan'] = '\n'.join(current_plan)
+                            
+                            # Reset flags
+                            st.session_state.user_state['show_mood_input'] = False
+                            st.session_state.user_state['last_completed_task'] = None
+                            st.rerun()
     
     # Show suggested task if available
-    if st.session_state.user_state['suggested_task']:
+    if st.session_state.user_state['suggested_task'] and not st.session_state.user_state['task_added'] and not st.session_state.user_state['task_declined']:
         st.subheader("Suggested Next Task")
         st.write(st.session_state.user_state['suggested_task'])
         
@@ -152,14 +204,24 @@ if st.session_state.user_state['current_plan']:
                 st.session_state.user_state['current_plan'] = new_plan
                 st.session_state.user_state['completed_activities'][st.session_state.user_state['suggested_task']] = False
                 st.session_state.user_state['suggested_task'] = None
+                st.session_state.user_state['task_added'] = True
                 st.success("Task added to your plan!")
+                st.rerun()
         with col2:
             if st.button("Decline"):
                 st.session_state.user_state['suggested_task'] = None
+                st.session_state.user_state['task_declined'] = True
                 st.info("Task declined.")
+                st.rerun()
+    
+    # Reset the flags after the state has been updated
+    if st.session_state.user_state['task_added'] or st.session_state.user_state['task_declined']:
+        st.session_state.user_state['task_added'] = False
+        st.session_state.user_state['task_declined'] = False
     
     # Activity log section
     st.header("Activity Log")
+    st.write("Double click any box to edit its contents.")
     if st.session_state.user_state['activity_history']:
         # Create a DataFrame for the activity log
         activity_log = pd.DataFrame(st.session_state.user_state['activity_history'])
@@ -167,8 +229,8 @@ if st.session_state.user_state['current_plan']:
         # Format the timestamp for display
         activity_log['formatted_time'] = activity_log['timestamp'].dt.strftime('%Y-%m-%d %H:%M')
         
-        # Display the activity log
-        st.dataframe(
+        # Create editable table
+        edited_df = st.data_editor(
             activity_log[['formatted_time', 'activity', 'mood', 'energy']].rename(
                 columns={
                     'formatted_time': 'Time',
@@ -177,8 +239,54 @@ if st.session_state.user_state['current_plan']:
                     'energy': 'Energy'
                 }
             ),
-            hide_index=True
+            column_config={
+                "Mood": st.column_config.NumberColumn(
+                    "Mood",
+                    min_value=1,
+                    max_value=10,
+                    step=1,
+                    format="%d"
+                ),
+                "Energy": st.column_config.NumberColumn(
+                    "Energy",
+                    min_value=1,
+                    max_value=10,
+                    step=1,
+                    format="%d"
+                )
+            },
+            hide_index=True,
+            key="activity_editor"
         )
+        
+        # Update the activity history if changes were made
+        if not edited_df.equals(activity_log[['formatted_time', 'activity', 'mood', 'energy']].rename(
+            columns={
+                'formatted_time': 'Time',
+                'activity': 'Activity',
+                'mood': 'Mood',
+                'energy': 'Energy'
+            }
+        )):
+            # Convert the edited DataFrame back to the original format
+            updated_history = []
+            for _, row in edited_df.iterrows():
+                # Find the original timestamp for this activity
+                original_entry = next(
+                    (entry for entry in st.session_state.user_state['activity_history']
+                     if entry['activity'] == row['Activity']),
+                    None
+                )
+                if original_entry:
+                    updated_history.append({
+                        'timestamp': original_entry['timestamp'],
+                        'activity': row['Activity'],
+                        'mood': int(row['Mood']),
+                        'energy': int(row['Energy'])
+                    })
+            
+            st.session_state.user_state['activity_history'] = updated_history
+            st.rerun()
     else:
         st.info("Complete activities from your plan to see them logged here.")
 

@@ -53,6 +53,7 @@ class PlannerAgent:
             "7. You must not include any redundant tasks."
             "8. The total number of tasks should be between 5-7. This should only change if the user asks for more than 7 tasks to be made. "
             "9. Don't generate dummy data or placeholders. If you don't have specific information, you can leave it vague. For example 'Eat dinner at [insert restaurant name]' can just be 'Eat dinner'"
+            "10. You should never include times in the plan." 
         )
         return prompt
 
@@ -63,13 +64,17 @@ class PlannerAgent:
         prompt = (
             f"Completed Task: {completed_task}\n"
             f"Current Tasks: {', '.join(all_tasks)}\n\n"
-            "Generate ONE complementary task that would enhance productivity or well-being. "
+
+
+
+            "Generate ONE complementary task that would enhance productivity or well-being. ONLY generate the task, no other text. "
             "The task should:\n"
-            "1. Be directly related to the completed task or overall goals\n"
+            "1. Be directly related to the completed task or overall goals it is preferred that it is related to the recently completed task\n"
             "2. Be a standalone, actionable item\n"
             "3. Be different from existing tasks\n"
             "4. Be realistic and achievable\n"
-            "5. Be brief and to the point\n"
+            "5. Be brief and to the point. One sentence should suffice. \n"
+            "6. You should never include times in the plan."
         )
         
         messages = [
