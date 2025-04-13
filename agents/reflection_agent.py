@@ -9,17 +9,23 @@ class ReflectionAgent(BaseAgent):
             'positive': [
                 "Great progress! You've been consistently {}",
                 "Your dedication to {} is impressive",
-                "You're making excellent strides in {}"
+                "You're making excellent strides in {}",
+                "We see you doing grade with {}. Keep it up!",
+                "Be proud of yourself for {}"
             ],
             'neutral': [
                 "You're maintaining a steady routine with {}",
                 "Your commitment to {} is showing results",
-                "Keep up the good work with {}"
+                "Keep up the good work with {}",
+                "Go you!",
+                "You're doing great!"
             ],
             'improvement': [
                 "Consider focusing more on {}",
                 "There's room for growth in {}",
-                "You might benefit from more {}"
+                "You might benefit from more {}",
+                "You're doing great, but you could improve in {}",
+                "Try to do more {}. Keep it up!"
             ]
         }
     

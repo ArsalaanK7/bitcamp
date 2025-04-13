@@ -114,6 +114,7 @@ if st.session_state.user_state['checkin_completed']:
             st.success("I've created a new personalized plan based on your updated goal!")
             st.rerun()
     
+    st.divider()
     # Display the personalized plan
     if st.session_state.user_state['current_plan']:
         st.header("Your Personalized Plan")
@@ -237,6 +238,7 @@ if st.session_state.user_state['checkin_completed']:
             st.session_state.user_state['task_added'] = False
             st.session_state.user_state['task_declined'] = False
         
+        st.divider()
         # Activity log section
         st.header("Activity Log")
         st.write("Double click any box to edit its contents.")
@@ -308,15 +310,16 @@ if st.session_state.user_state['checkin_completed']:
         else:
             st.info("Complete activities from your plan to see them logged here.")
         
+
+
+        st.divider()
         # Progress visualization
         if st.session_state.user_state['mood_history']:
-            st.header("Your Progress")
+            st.header("Mood & Energy Trends")
             
             # Create DataFrame from history
             history_data = pd.DataFrame(st.session_state.user_state['mood_history'])
             
-            # Create a multi-line chart for mood and energy
-            st.subheader("Mood & Energy Trends")
             
             # Set dark mode style for matplotlib
             plt.style.use('dark_background')
@@ -362,7 +365,23 @@ if st.session_state.user_state['checkin_completed']:
             st.session_state.user_state['sleep_history']
         )
         
+        st.divider()
         if insights:
-            st.subheader("Insights")
-            for insight in insights:
-                st.write(f"💡 {insight}") 
+            st.header("Your Insights")
+            st.markdown("Here's what we've learned from your activities:")
+            
+            # Create columns for insights
+            cols = st.columns(2)
+            for i, insight in enumerate(insights):
+                with cols[i % 2]:
+                    st.markdown(f"""
+                        <div style="
+                            background-color: #1E1E1E;
+                            padding: 15px;
+                            border-radius: 10px;
+                            margin-bottom: 10px;
+                            border-left: 4px solid #FF69B4;
+                        ">
+                            <p style="margin: 0; color: white;">{insight}</p>
+                        </div>
+                    """, unsafe_allow_html=True) 
