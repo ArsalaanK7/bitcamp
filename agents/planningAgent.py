@@ -1,12 +1,12 @@
 import os
 import getpass
 import json
+from dotenv import load_dotenv
 
+load_dotenv()
 
-
-# Ensure the Google API key is in the environment variables.
-if "GOOGLE_API_KEY" not in os.environ:
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyADcZqw7c0SJngjdOtLyMl88Q8PCH5AJk0"
+# Set the Google API key from environment variables
+os.environ["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_API_KEY")
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
