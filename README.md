@@ -1,39 +1,11 @@
-# NeuraCoach - Your Adaptive AI Wellness Partner
+## Inspiration
+Being a student can be lot of work. A full course load for an undergraduate student is anywhere between 12 - 18 credit hours. Most professors expect at least 3 hours of work per week, per credit hour. That is up to 54 hours a week of work! It can be overwhelming, but NeuraCoach is here to help.
 
-NeuraCoach is an intelligent, agent-based health assistant that leverages Reinforcement Learning (RL) and agentic AI to create and refine personalized wellness plans across mental and physical health domains. It helps users build habits through dynamic goal-setting, mood tracking, physical activity coaching, and adaptive rewards.
+## What it does
+NeuraCoach is an interactive service that synthesizes a users list of tasks into a clear and concise task plan. This plan is generated to include the items a user needs to complete, as well as offer complementary tasks that can provide meaningful rests and buffers to the workload. Users are also able to log their mood and energy levels as they complete tasks, providing them with a valuable log, and the system with valuable data to adjust its suggestions to. 
 
-## Features
+## How we built it
+On the frontend, we utilized the Streamlit platform for user interaction. This allowed us to use Python to create our frontend. On the backend, we used Python scripts to interface with Google Gemini 2.0 for task generation. This way, the task generation can be tuned to the users needs, and current wellbeing. 
 
-- 🤖 **Agentic Architecture**: Multiple specialized agents working together to provide personalized wellness guidance
-- 🔄 **Reinforcement Learning**: Adapts recommendations based on user behavior and outcomes
-- 📊 **Progress Tracking**: Visualize your wellness journey with mood and activity tracking
-- 🎯 **Personalized Recommendations**: Get customized suggestions based on your current state
-- 🔒 **Privacy-First**: All data is stored locally and can be anonymized
 
-## Tech Stack
 
-- **Frontend**: Streamlit
-- **AI/ML**: 
-  - Gemini for plan personalization
-  - Langchain to integrate LLM
-- **Data Storage**: Local storage with pandas
-- **Dependencies**: See requirements.txt
-
-## Usage
-
-1. Start the application:
-```bash
-streamlit run app.py
-```
-
-2. Open your browser and navigate to `http://localhost:8501`
-
-3. Begin your wellness journey by:
-   - Completing daily check-ins
-   - Following personalized recommendations
-   - Tracking your activities
-   - Viewing your progress
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
