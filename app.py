@@ -3,9 +3,8 @@ import numpy as np
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
-from agents.planner_agent import PlannerAgent
+from agents.planningAgent import PlannerAgent
 from agents.reflection_agent import ReflectionAgent
-from agents.recommendation_agent import RecommendationAgent
 from agents.checkin_agent import CheckinAgent
 from models.rl_engine import RLEngine
 
@@ -18,13 +17,14 @@ if 'user_state' not in st.session_state:
         'goals': [],
         'current_plan': None,
         'completed_activities': {},  # Dictionary to track completed activities
-        'daily_goal': ""  # Store the user's daily goal
+        'daily_goal': "",  # Store the user's daily goal
+        'suggested_task': None,  # Store the current suggested task
+        'last_completed_task': None  # Store the last completed task
     }
 
 # Initialize agents
 planner_agent = PlannerAgent()
 reflection_agent = ReflectionAgent()
-recommendation_agent = RecommendationAgent()
 checkin_agent = CheckinAgent()
 rl_engine = RLEngine()
 
@@ -51,18 +51,18 @@ with st.sidebar:
         # Get check-in feedback
         feedback = checkin_agent.get_checkin_feedback(mood, energy_level, sleep_hours)
         
-        # Get personalized recommendations
-        recommendations = recommendation_agent.get_recommendations(
-            mood=mood,
-            sleep_hours=sleep_hours,
-            energy_level=energy_level
-        )
+        # Get personalized recommendations using planning agent
+        recommendations = planner_agent.generate_plan([
+            f"Adjust mood to {mood}/10",
+            f"Maintain energy at {energy_level}/10",
+            f"Ensure {sleep_hours} hours of sleep"
+        ])
         
         st.session_state.user_state['current_plan'] = recommendations
         
         # Initialize completed activities for the new plan
         st.session_state.user_state['completed_activities'] = {
-            rec: False for rec in recommendations
+            rec: False for rec in recommendations.split('\n') if rec.strip()
         }
         
         # Show feedback
@@ -83,18 +83,13 @@ if daily_goal != st.session_state.user_state['daily_goal']:
     # If we have a goal and no plan yet, generate a new plan
     if daily_goal and not st.session_state.user_state['current_plan']:
         # Get personalized recommendations based on the goal
-        recommendations = recommendation_agent.get_recommendations(
-            mood=mood,
-            sleep_hours=sleep_hours,
-            energy_level=energy_level,
-            goal=daily_goal  # Pass the goal to the recommendation agent
-        )
+        recommendations = planner_agent.generate_plan([daily_goal])
         
         st.session_state.user_state['current_plan'] = recommendations
         
         # Initialize completed activities for the new plan
         st.session_state.user_state['completed_activities'] = {
-            rec: False for rec in recommendations
+            rec: False for rec in recommendations.split('\n') if rec.strip()
         }
         
         st.success("I've created a personalized plan based on your goal!")
@@ -108,30 +103,60 @@ if st.session_state.user_state['current_plan']:
         st.subheader(f"Goal: {st.session_state.user_state['daily_goal']}")
     
     # Create a checklist for the plan items
-    for rec in st.session_state.user_state['current_plan']:
-        # Check if this activity is already completed
-        is_completed = st.session_state.user_state['completed_activities'].get(rec, False)
+    plan_items = st.session_state.user_state['current_plan'].split('\n')
+    for rec in plan_items:
+        if rec.strip():  # Only process non-empty lines
+            # Check if this activity is already completed
+            is_completed = st.session_state.user_state['completed_activities'].get(rec, False)
+            
+            # Create a checkbox for each recommendation
+            if st.checkbox(rec, value=is_completed, key=f"check_{rec}"):
+                # If the activity is checked and wasn't completed before
+                if not is_completed:
+                    # Update the completed status
+                    st.session_state.user_state['completed_activities'][rec] = True
+                    
+                    # Store the completed task
+                    st.session_state.user_state['last_completed_task'] = rec
+                    
+                    # Log the activity with current mood and energy
+                    st.session_state.user_state['activity_history'].append({
+                        'timestamp': datetime.now(),
+                        'activity': rec,
+                        'mood': mood,
+                        'energy': energy_level
+                    })
+                    
+                    # Update RL engine
+                    rl_engine.update(rec, mood)
+                    
+                    # Generate a complementary task
+                    current_tasks = [task for task in plan_items if task.strip()]
+                    suggested_task = planner_agent.generate_complementary_task(rec, current_tasks)
+                    if suggested_task:
+                        st.session_state.user_state['suggested_task'] = suggested_task
+                    
+                    # Show success message
+                    st.success(f"Great job completing: {rec}!")
+    
+    # Show suggested task if available
+    if st.session_state.user_state['suggested_task']:
+        st.subheader("Suggested Next Task")
+        st.write(st.session_state.user_state['suggested_task'])
         
-        # Create a checkbox for each recommendation
-        if st.checkbox(rec, value=is_completed, key=f"check_{rec}"):
-            # If the activity is checked and wasn't completed before
-            if not is_completed:
-                # Update the completed status
-                st.session_state.user_state['completed_activities'][rec] = True
-                
-                # Log the activity with current mood and energy
-                st.session_state.user_state['activity_history'].append({
-                    'timestamp': datetime.now(),
-                    'activity': rec,
-                    'mood': mood,
-                    'energy': energy_level
-                })
-                
-                # Update RL engine
-                rl_engine.update(rec, mood)
-                
-                # Show success message
-                st.success(f"Great job completing: {rec}!")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Add to Plan"):
+                # Add the suggested task to the plan
+                new_plan = st.session_state.user_state['current_plan'] + "\n" + st.session_state.user_state['suggested_task']
+                st.session_state.user_state['current_plan'] = new_plan
+                st.session_state.user_state['completed_activities'][st.session_state.user_state['suggested_task']] = False
+                st.session_state.user_state['suggested_task'] = None
+                st.success("Task added to your plan!")
+        with col2:
+            if st.button("Decline"):
+                st.session_state.user_state['suggested_task'] = None
+                st.info("Task declined.")
     
     # Activity log section
     st.header("Activity Log")
