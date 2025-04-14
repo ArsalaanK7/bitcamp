@@ -2,6 +2,7 @@ import os
 import getpass
 import json
 from dotenv import load_dotenv
+from models.rl_engine import RLEngine
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ class PlannerAgent:
             timeout=None,
             max_retries=2
         )
+        self.rl_engine = RLEngine()
 
     def construct_prompt(self, tasks: list) -> str:
         """
@@ -57,24 +59,28 @@ class PlannerAgent:
         )
         return prompt
 
-    def generate_complementary_task(self, completed_task: str, all_tasks: list) -> str:
+    def generate_complementary_task(self, completed_task: str, all_tasks: list, current_mood: float, current_energy: float) -> str:
         """
-        Generates a complementary task based on the completed task and current task list.
+        Generates a complementary task based on the completed task, current tasks, and user state.
         """
+        # Get the best task type from RL engine
+        best_task_type = self.rl_engine.get_best_task_type(current_mood, current_energy)
+        
         prompt = (
             f"Completed Task: {completed_task}\n"
-            f"Current Tasks: {', '.join(all_tasks)}\n\n"
-
-
-
+            f"Current Tasks: {', '.join(all_tasks)}\n"
+            f"Current Mood: {current_mood}/10\n"
+            f"Current Energy: {current_energy}/10\n"
+            f"Recommended Task Type: {best_task_type}\n\n"
             "Generate ONE complementary task that would enhance productivity or well-being. ONLY generate the task, no other text. "
             "The task should:\n"
-            "1. Be directly related to the completed task or overall goals it is preferred that it is related to the recently completed task\n"
-            "2. Be a standalone, actionable item\n"
-            "3. Be different from existing tasks\n"
-            "4. Be realistic and achievable\n"
-            "5. Be brief and to the point. One sentence should suffice. \n"
-            "6. You should never include times in the plan."
+            "1. Be a {best_task_type} activity\n"
+            "2. Be directly related to the completed task or overall goals\n"
+            "3. Be a standalone, actionable item\n"
+            "4. Be different from existing tasks\n"
+            "5. Be realistic and achievable\n"
+            "6. Be brief and to the point. One sentence should suffice.\n"
+            "7. You should never include times in the plan."
         )
         
         messages = [

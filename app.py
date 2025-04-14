@@ -160,7 +160,9 @@ if st.session_state.user_state['checkin_completed']:
                         
                         # Generate a complementary task
                         current_tasks = [task for task in plan_items if task.strip()]
-                        suggested_task = planner_agent.generate_complementary_task(rec, current_tasks)
+                        current_mood = st.session_state.user_state['mood_history'][-1]['mood'] if st.session_state.user_state['mood_history'] else 5
+                        current_energy = st.session_state.user_state['mood_history'][-1]['energy'] if st.session_state.user_state['mood_history'] else 5
+                        suggested_task = planner_agent.generate_complementary_task(rec, current_tasks, current_mood, current_energy)
                         if suggested_task:
                             st.session_state.user_state['suggested_task'] = suggested_task
                         
@@ -198,7 +200,11 @@ if st.session_state.user_state['checkin_completed']:
                                 })
                                 
                                 # Update RL engine
-                                rl_engine.update(rec, post_mood)
+                                prev_mood = st.session_state.user_state['mood_history'][-1]['mood'] if st.session_state.user_state['mood_history'] else 5
+                                prev_energy = st.session_state.user_state['mood_history'][-1]['energy'] if st.session_state.user_state['mood_history'] else 5
+                                mood_change = post_mood - prev_mood
+                                energy_change = post_energy - prev_energy
+                                rl_engine.update(rec, mood_change, energy_change)
                                 
                                 # Remove the completed task from the plan
                                 current_plan = st.session_state.user_state['current_plan'].split('\n')
@@ -384,4 +390,50 @@ if st.session_state.user_state['checkin_completed']:
                         ">
                             <p style="margin: 0; color: white;">{insight}</p>
                         </div>
-                    """, unsafe_allow_html=True) 
+                    """, unsafe_allow_html=True)
+
+# Task completion and mood update
+if st.session_state.user_state['show_mood_input']:
+    with st.form("mood_update"):
+        st.header("How are you feeling after completing the task?")
+        mood = st.slider("Mood (1-10)", 1, 10, 5)
+        energy = st.slider("Energy Level (1-10)", 1, 10, 5)
+        
+        submitted = st.form_submit_button("Submit")
+        
+        if submitted:
+            # Get the last completed task
+            last_task = st.session_state.user_state['last_completed_task']
+            
+            # Calculate mood and energy changes
+            prev_mood = st.session_state.user_state['mood_history'][-1]['mood'] if st.session_state.user_state['mood_history'] else 5
+            prev_energy = st.session_state.user_state['mood_history'][-1]['energy'] if st.session_state.user_state['mood_history'] else 5
+            
+            mood_change = mood - prev_mood
+            energy_change = energy - prev_energy
+            
+            # Update RL engine with task completion and effects
+            rl_engine.update(last_task, mood_change, energy_change)
+            
+            # Update user state
+            st.session_state.user_state['mood_history'].append({
+                'timestamp': datetime.now(),
+                'mood': mood,
+                'energy': energy
+            })
+            
+            # Generate new complementary task using RL-informed planner
+            current_tasks = list(st.session_state.user_state['completed_activities'].keys())
+            new_task = planner_agent.generate_complementary_task(
+                last_task,
+                current_tasks,
+                mood,
+                energy
+            )
+            
+            if new_task:
+                st.session_state.user_state['suggested_task'] = new_task
+                st.session_state.user_state['task_added'] = True
+            
+            st.session_state.user_state['show_mood_input'] = False
+            st.rerun() 
